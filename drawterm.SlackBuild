@@ -2,7 +2,7 @@
 
 # Slackware build script for drawterm
 
-# Copyright 2018 Sean Hinchee USA
+# Copyright 2018 Sean Hinchee
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -55,31 +55,25 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-# Compile the application and install it into the $PKG directory
 CONF=unix make
-cp drawterm $PKG
-cp drawterm.1 $PKG
+mkdir -p $PKG/usr/local/bin
+cp drawterm $PKG/usr/local/bin
+mkdir -p $PKG/usr/local/man/man1
+cp drawterm.1 $PKG/usr/local/man/man1/drawterm.1
 
-# Strip binaries and libraries - this can be done with 'make install-strip'
-# in many source trees, and that's usually acceptable if so, but if not,
-# use this:
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
 
-# Compress man pages
-# If the man pages are installed to /usr/share/man instead, you'll need to either
-# add the --mandir=/usr/man flag to configure or move them manually after the
-# make install process is run.
-find $PKG/usr/man -type f -exec gzip -9 {} \;
-for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
+# Compress man pages if they exist
+if [ -d $PKG/usr/local/man ]; then
+  ( cd $PKG/usr/local/man
+  find . -type f -exec gzip -9 {} \;
+  for i in $(find . -type l) ; do ln -s $(readlink $i).gz $i.gz ; rm $i ; done
+  ) 
+fi
 
-# Copy the slack-desc (and a custom doinst.sh if necessary) into ./install
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc
 
-# Make the package; be sure to leave it in $OUTPUT
-# If package symlinks need to be created during install *before*
-# your custom contents of doinst.sh runs, then add the -p switch to
-# the makepkg command below -- see makepkg(8) for details
 cd $PKG
 /sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.${PKGTYPE:-tgz}
